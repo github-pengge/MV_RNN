@@ -16,8 +16,9 @@ class Config(object):
     """Holds model hyperparams and data information.
        Model objects are passed a Config() object at instantiation.
     """
-    embed_size = 20
+    embed_size = 35
     label_size = 2
+    rank = 3
     early_stopping = 2
     anneal_threshold = 0.99
     anneal_by = 1.5
@@ -74,7 +75,7 @@ class RNN_Model():
             tf.get_variable('W1', [self.config.embed_size, 2*self.config.embed_size])  # W in the paper
             tf.get_variable('b1', [self.config.embed_size, 1])
             tf.get_variable('embedding_vec', [len(self.vocab), self.config.embed_size])
-            tf.get_variable('embedding_mat', [len(self.vocab), self.config.embed_size, self.config.embed_size])
+            tf.get_variable('embedding_mat', [len(self.vocab), 2*self.config.rank*self.config.embed_size + self.config.embed_size])
             tf.get_variable('W2', [self.config.embed_size, 2*self.config.embed_size])  # Wm in the paper
             tf.get_variable('b2', [self.config.embed_size, 1])
             ### END YOUR CODE
@@ -117,6 +118,10 @@ class RNN_Model():
             word_id = self.vocab.encode(node.word)
             curr_node_vec = tf.expand_dims(tf.gather(embedding_vec, word_id), 1)  # calling tf.expand_dims to adding the first dimension(0) to that param.
             curr_node_mat = tf.gather(embedding_mat, word_id)
+            U = tf.reshape(curr_node_mat[:self.config.embed_size*self.config.rank], [self.config.embed_size, self.config.rank])
+            V = tf.reshape(curr_node_mat[self.config.embed_size*self.config.rank:2*self.config.embed_size*self.config.rank], [self.config.rank, self.config.embed_size])
+            a = curr_node_mat[-self.config.embed_size:]
+            curr_node_mat = tf.matmul(U, V) + tf.diag(a)  # A word matrix is calculated by: UV + diag(a)
             curr_node_tensor = [curr_node_vec, curr_node_mat]
             ### END YOUR CODE
         else:
@@ -372,3 +377,4 @@ def test_RNN():
 
 if __name__ == "__main__":
     test_RNN()
+
